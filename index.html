@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Colors of Words</title>
+</head>
+<body>
+<input id="words" placeholder="Type a word ...">
+<div id="color-container" style="display: flex"></div>
+<style>
+    input{
+        position: absolute;
+        top: 25vh;
+        left: 25vw;
+        width: 50vw;
+        height: 50px;
+        background-color: rgba(113, 56, 56, 0.0);
+        color: aliceblue;
+        font-size: 25px;
+        border: none;
+        border-bottom: 2px solid #ffffff;
+        outline: none;
+    }
+    input::placeholder{
+        color: white;
+    }
+    body{
+        margin: 0;
+        font-family: Helvetica,serif;
+        background-color: #5b1711;
+    }
+    .text{
+        margin: auto;
+        width: fit-content;
+        opacity: 0;
+        transition: 500ms;
+    }
+    .color-div{
+        width: 10vw;
+        height: 100vh;
+        display: grid;
+        align-items: center;
+        transition: 500ms;
+    }
+    .color-div:hover > .text{
+        opacity: 1;
+    }
+    .color-div:hover{
+        opacity: 0.6;
+    }
+
+</style>
+<script>
+    const text = 'An obscure body in the S-K System, your majesty. The inhabitants refer to it as the planet Earth.';
+
+    async function digestMessage(message) {
+
+        const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
+        const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+        return hashHex;
+    }
+    function shaParser(hex){
+        return hex.match(/[\w]{6}/g);
+    }
+    function getColorContrast(hex) {
+        let rgb = hexToRgb(hex);
+        let nrgb = {r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b};
+        return rgbToHex(nrgb.r, nrgb.g, nrgb.b);
+    }
+
+    function hexToRgb(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    document.getElementById("words").addEventListener("keyup",handler);
+
+    function handler(e) {
+        let str = document.querySelector("#words").value.toLowerCase();
+        if(str === ""){ document.querySelector("#color-container").innerHTML = "";}
+        else{
+            digestMessage(str).then(s=>{
+                let colorArray = shaParser(s);
+                let divArray = colorArray.map(s=>`<div style="background-color: #${s};color: ${getColorContrast(s)}" class="color-div"><div class="text">#${s}</div></div>`);
+                document.querySelector("#color-container").innerHTML = "";
+                divArray.forEach(s=>{
+                    document.querySelector("#color-container").innerHTML += s;
+                })
+            });
+        }
+    }
+
+</script>
+</body>
+</html>
