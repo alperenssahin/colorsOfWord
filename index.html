@@ -11,7 +11,18 @@
 <!--       href="https://twitter.com/intent/tweet?text=something" target="_blank">-->
 <!--        Tweet</a>-->
 </div>
-<div id="color-container" style="display: flex"></div>
+<div id="color-container" style="display: flex">
+    <div id="c0" class="color-div"><div id="c0t" class="text"></div></div>
+    <div id="c1" class="color-div"><div id="c1t" class="text"></div></div>
+    <div id="c2" class="color-div"><div id="c2t" class="text"></div></div>
+    <div id="c3" class="color-div"><div id="c3t" class="text"></div></div>
+    <div id="c4" class="color-div"><div id="c4t" class="text"></div></div>
+    <div id="c5" class="color-div"><div id="c5t" class="text"></div></div>
+    <div id="c6" class="color-div"><div id="c6t" class="text"></div></div>
+    <div id="c7" class="color-div"><div id="c7t" class="text"></div></div>
+    <div id="c8" class="color-div"><div id="c8t" class="text"></div></div>
+    <div id="c9" class="color-div"><div id="c9t" class="text"></div></div>
+</div>
 <style>
     #input-container{
         position: absolute;
@@ -19,6 +30,8 @@
         left: 25vw;
         width: 50vw;
         height: 50px;
+        z-index: 999999;
+
     }
     input{
         width: 50vw;
@@ -30,6 +43,13 @@
         border-bottom: 2px solid #ffffff;
         outline: none;
         text-shadow: 1px 1px 2px #5b1711;
+        transition: 2s;
+        padding: 10px;
+        z-index: 999999;
+    }
+    input:focus{
+        height: 100px;
+        font-size: 70px;
     }
     input::placeholder{
         color: white;
@@ -46,11 +66,13 @@
         transition: 500ms;
     }
     .color-div{
+        position: relative;
         width: 10vw;
         height: 100vh;
         display: grid;
         align-items: center;
         transition: 500ms;
+        z-index: 00000;
     }
     .color-div:hover > .text{
         opacity: 1;
@@ -97,15 +119,23 @@
 
     function handler(e) {
         let str = document.querySelector("#words").value.toLowerCase();
-        if(str === ""){ document.querySelector("#color-container").innerHTML = "";}
+        if(str === ""){
+            [...document.querySelectorAll(".color-div")].forEach(s=> {s.style.backgroundColor = "#5b1711"});
+            [...document.querySelectorAll(".text")].forEach(s=> {s.textContent = ""});
+        }
         else{
             digestMessage(str).then(s=>{
                 let colorArray = shaParser(s);
-                let divArray = colorArray.map(s=>`<div style="background-color: #${s};color: ${getColorContrast(s)}" class="color-div"><div class="text">#${s}</div></div>`);
-                document.querySelector("#color-container").innerHTML = "";
-                divArray.forEach(s=>{
-                    document.querySelector("#color-container").innerHTML += s;
-                })
+                let timer = 0;
+                colorArray.forEach((s,index)=>{
+                    timer +=20;
+                    setTimeout(()=>{
+                        document.querySelector("#c"+index).style.backgroundColor = "#"+s;
+                        document.querySelector("#c"+index).style.color = getColorContrast(s);
+                        document.querySelector("#c"+index+"t").textContent = "#"+s;
+
+                    },timer);
+                });
             });
         }
     }
