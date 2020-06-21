@@ -2,16 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="bla bla" />
+    <meta name="twitter:description" content="bla bla" />
+    <meta name="twitter:image" content="http://www.tapawayapp.com/assets/images/share.png"/>
+    <meta name="twitter:url" content="https://tapaway.parseapp.com//share.html" />
     <title>Colors of Words</title>
 </head>
 <body>
-<input id="words" placeholder="Type a word ...">
+<div id="input-container">
+    <input id="words" placeholder="Type a word ...">
+    <a class="twitter-share-button"
+       href="https://twitter.com/intent/tweet?text=something" target="_blank">
+        Tweet</a>
+</div>
 <div id="color-container" style="display: flex"></div>
 <style>
-    input{
+    #input-container{
         position: absolute;
         top: 25vh;
         left: 25vw;
+        width: 50vw;
+        height: 50px;
+    }
+    input{
         width: 50vw;
         height: 50px;
         background-color: rgba(113, 56, 56, 0.0);
@@ -20,6 +34,7 @@
         border: none;
         border-bottom: 2px solid #ffffff;
         outline: none;
+        text-shadow: 1px 1px 2px #5b1711;
     }
     input::placeholder{
         color: white;
