@@ -15,7 +15,7 @@
         </div>
     </div>
 </div>
-<input type="text" id="textinput">
+<input id="textinput" placeholder="Type a word ...">
 <canvas id="myCanvas"></canvas>
 <script>
     window.designRatio = 1;
@@ -299,6 +299,27 @@
         border-radius: 10px;
         color: #cccccc;
 
+    }
+    input{
+        width: 50vw;
+        height: 50px;
+        background-color: rgba(113, 56, 56, 0.0);
+        color: aliceblue;
+        font-size: 25px;
+        border: none;
+        border-bottom: 2px solid #ffffff;
+        outline: none;
+        text-shadow: 1px 1px 2px #5b1711;
+        transition: 2s;
+        padding: 10px;
+        z-index: 999999;
+    }
+    input:focus{
+        height: 100px;
+        font-size: 70px;
+    }
+    input::placeholder{
+        color: white;
     }
 
 </style>
