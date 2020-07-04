@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Colors Of Words v2</title>
+</head>
+<body>
+<div class="alert-container" id="alert-box">
+    <div class="alert-box">
+        <h2>Bu web sayfası hareketli görseller içermektedir!</h2>
+        <h3>Hareketli görseller sağlığınızı olumsuz etkiliyorsa "Animasyonları Kapat" seçeneğini seçiniz</h3>
+        <div style="display:flex;">
+            <button onclick="animationPermissionHandler(false);">Animasyonları Kapat</button>
+            <button onclick="animationPermissionHandler(true);">Devam Et</button>
+        </div>
+    </div>
+</div>
+<input type="text" id="textinput">
+<canvas id="myCanvas"></canvas>
+<script>
+    window.designRatio = 1;
+    window.pidState = true;
+    function standardDeviation(values){
+        var avg = average(values);
+
+        var squareDiffs = values.map(function(value){
+            var diff = value - avg;
+            var sqrDiff = diff * diff;
+            return sqrDiff;
+        });
+
+        var avgSquareDiff = average(squareDiffs);
+
+        var stdDev = Math.sqrt(avgSquareDiff);
+        return stdDev;
+    }
+
+    function average(data){
+        var sum = data.reduce(function(sum, value){
+            return sum + value;
+        }, 0);
+
+        var avg = sum / data.length;
+        return avg;
+    }
+    const handleSuccess = function (stream) {
+        const context = new AudioContext();
+        const source = context.createMediaStreamSource(stream);
+        const processor = context.createScriptProcessor(1024, 1, 1);
+
+        const analyser = context.createAnalyser();
+
+        source.connect(processor);
+        processor.connect(context.destination);
+        let sample = 0;
+        let averageArray = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        processor.onaudioprocess = function (e) {
+            averageArray.shift();
+            // console.log(averageArray);
+            sample++;
+            let count = 0;
+            let sum = 0;
+            // Do something with the data, e.g. convert it to WAV
+            // console.log(e.inputBuffer.getChannelData(0));
+            // e.inputBuffer.getChannelData(0);
+
+            for (let s = 0; s < e.inputBuffer.getChannelData(0).length; s += 10) {
+                count++;
+                sum += e.inputBuffer.getChannelData(0)[s];
+            }
+            let average = sum / count * 10;
+            averageArray.push(average);
+            let stdev = standardDeviation(averageArray);
+           if(Math.abs(stdev-average) > 0.05){
+               if(window.pidState){
+               let  interval1 = setInterval(()=>{
+                      window.pidState = false;
+                      let dif = window.designRatio - average;
+                      window.designRatio += (-1)*dif/30;
+                      // console.log("process", window.designRatio,average)
+                      if(window.designRatio.toFixed(3) === average.toFixed(3)){
+                          window.pidState = true;
+                          clearInterval(interval1);
+                      }
+               },1);
+           }
+           }
+            // if (sample % 10 === 0) {
+            //     let dif = window.designRatio - average;
+            //         if(dif < 0){
+            //             while (window.designRatio < average){
+            //             window.designRatio += 0.001;
+            //             }
+            //         }else{
+            //             while (window.designRatio > average){
+            //                 window.designRatio -= 0.001;}
+            //         }
+            // }
+
+            // console.log(window.designRatio*1000);
+
+        };
+    };
+
+    navigator.mediaDevices.getUserMedia({audio: true, video: false})
+        .then(handleSuccess);
+</script>
+<script>
+
+    if (window.localStorage.getItem("animation") || window.localStorage.getItem("animation") === "false") {
+        document.querySelector("#alert-box").style.display = "none";
+    } else {
+        document.querySelector("#alert-box").style.display = "block";
+    }
+
+    function animationPermissionHandler(state) {
+        window.localStorage.setItem("animation", state);
+        document.querySelector("#alert-box").style.display = "none";
+    }
+
+    var canvas = document.getElementById('myCanvas');
+    canvas.width = window.innerWidth * 2;
+    canvas.height = window.innerHeight * 2;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = "#444444";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let center = {
+        x: canvas.width / 2,
+        y: canvas.height / 2
+    }
+
+    async function digestMessage(message, base = 16) {
+        const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
+        const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
+        const hashHex = hashArray.map(b => b.toString(base).padStart(2, '0')).join(''); // convert bytes to hex string
+        return hashHex;
+    }
+
+
+    class Hash {
+        constructor(hash) {
+            this.raw = hash;
+            this.num = Number(hash) * Number(hash);
+            this.collector = "";
+        }
+
+        pop(digit) {
+            let mod = Math.pow(10, digit);
+            let result = this.num % mod;
+            this.num = (this.num - result) / mod;
+            this.collector += result.toString(16);
+            return result;
+        }
+
+        color() {
+            let colorMap = this.collector.match(/[\w]{6}/g);
+            try {
+                let color = colorMap.pop();
+                this.collector = colorMap.join("");
+                return "#" + color;
+            } catch (e) {
+                return "#ccc";
+            }
+        }
+
+        background() {
+            return "#" + this.num.toString(16).match(/[\w]{6}/);
+        }
+    }
+
+    class Arc {
+        constructor(r, start, end, width, color, time) {
+            this.r = r;
+            this.startAngle = start;
+            this.endAngle = end;
+            this.start = this.radian(start);
+            this.end = this.radian(end);
+            this.width = width;
+            this.color = color;
+            this.diff = time+10
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, this.r, this.start, this.end);
+            ctx.lineWidth = (this.width * window.designRatio*2) % 80 + 50;
+            ctx.strokeStyle = this.color;
+            ctx.stroke();
+            this.startAngle = (this.startAngle + (this.diff * window.designRatio));
+            this.endAngle = (this.endAngle + (this.diff * window.designRatio));
+            this.start = this.radian((this.startAngle));
+            this.end = this.radian((this.endAngle));
+        }
+
+        radian(angle) {
+            return Math.PI * angle / 180;
+        }
+    }
+
+    // document.getElementById("textinput").addEventListener("keydown",ev=>{
+    //     document.getElementById("myCanvas").style.opacity = 0.5;
+    // });
+    let interval = null;
+    document.getElementById("textinput").addEventListener("keyup", ev => {
+        // document.getElementById("myCanvas").style.opacity = 1;
+        clearInterval(interval);
+        digestMessage(ev.target.value, 10).then(s => {
+            let arcArray = [];
+            let hh = new Hash(s);
+            ctx.fillStyle = hh.background();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            while (hh.num > 1) {
+                arcArray.push(new Arc(hh.pop(3), hh.pop(3), hh.pop(3), hh.pop(3), hh.color(), hh.pop(1)));
+            }
+            if (window.localStorage.getItem("animation") !== "false") {
+                interval = setInterval(() => {
+                    ctx.fillStyle = hh.background();
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    arcArray.forEach(s => {
+                        s.draw();
+                    })
+                }, 10)
+            } else {
+                arcArray.forEach(s => {
+                    s.draw();
+                })
+            }
+        });
+    });
+
+
+</script>
+<style>
+    body {
+        margin: 0;
+    }
+
+    #textinput {
+        position: absolute;
+        top: 5vh;
+        left: 20vw;
+        width: 60vw;
+        height: 50px;
+        color: #ccc;
+        font-size: 30px;
+        border: none;
+        outline: none;
+        background-color: rgba(245, 245, 220, 0.0);
+        border-bottom: 2px solid white;
+        z-index: 9;
+    }
+
+    #myCanvas {
+        transition: 0.1s;
+        position: absolute;
+        z-index: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .alert-container {
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(91, 23, 17, 0.28);
+        z-index: 99;
+        display: grid;
+        align-content: center;
+        justify-content: center;
+    }
+
+    .alert-box {
+        margin: 20px;
+        padding: 20px;
+        background-color: #cccccc;
+        font-family: Helvetica, sans-serif;
+        font-size: 20pt;
+    }
+
+    .alert-box h2 {
+        color: orangered;
+    }
+
+    .alert-box button {
+        width: 50%;
+        height: 50px;
+        background-color: #cccccc;
+        border: 5px solid orangered;
+        border-radius: 10px;
+        color: orangered;
+        font-size: 20px;
+    }
+
+    .alert-box button:hover {
+
+        background-color: orangered;
+        border: 5px solid orangered;
+        border-radius: 10px;
+        color: #cccccc;
+
+    }
+
+</style>
+</body>
+</html>
