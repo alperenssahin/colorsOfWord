@@ -118,7 +118,7 @@
     document.getElementById("words").addEventListener("keyup",handler);
 
     function handler(e) {
-        let str = document.querySelector("#words").value.toLowerCase();
+        let str = document.querySelector("#words").value.toLowerCase().match(/\w+/g).join(" ");
         if(str === ""){
             [...document.querySelectorAll(".color-div")].forEach(s=> {s.style.backgroundColor = "#5b1711"});
             [...document.querySelectorAll(".text")].forEach(s=> {s.textContent = ""});
