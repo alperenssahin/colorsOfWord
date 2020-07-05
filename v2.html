@@ -61,22 +61,35 @@
             const processor = context.createScriptProcessor(1024, 1, 1);
             processor.connect(context.destination);
             processor.onaudioprocess = function (e) {
-                analyser.getFloatTimeDomainData(dataArray);
+                let timeDomain = false;
+                try{
+                    analyser.getFloatTimeDomainData(dataArray);
+                    timeDomain = true;
+                }catch (e) {
+                    analyser.getFloatFrequencyData(dataArray);
+                }
 
 
                 let frequencyCounter = 0;
                 let currentStatePositive = true;
                 let max = 0;
                 for(let i =0; i<bufferLength; i++){
-                    if(dataArray[i] > max) max = dataArray[i];
-                    if(currentStatePositive){
-                        if(dataArray[i]<0) frequencyCounter++;
-                        currentStatePositive = false;
-                    }else{
-                        if(dataArray[i]>0) currentStatePositive = true;
-                    }
+                    if(timeDomain){
+                        if(dataArray[i] > max) max = dataArray[i];
+                        if(currentStatePositive){
+                            if(dataArray[i]<0) frequencyCounter++;
+                            currentStatePositive = false;
+                        }else{
+                            if(dataArray[i]>0) currentStatePositive = true;
+                        }
                 }
-                window.animateControl = 0;
+
+                }
+                if(!timeDomain){
+                    max = -1*dataArray[new Date().getTime()%256]/100;
+                    frequencyCounter = max*10;
+                }
+                    window.animateControl = 0;
                 if(window.pidState){
                     let  interval1 = setInterval(()=>{
                         window.pidState = false;
