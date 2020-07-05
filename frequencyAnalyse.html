@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<!doctype html>
+<body>
+<script>
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = 0;
+    canvas.style.left = 0;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const canvasCtx = canvas.getContext('2d');
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const handleSuccess = function (stream) {
+        var AudioContext = window.AudioContext // Default
+            || window.webkitAudioContext; // Safari and old versions of Chrome
+
+
+            // Do whatever you want using the Web Audio API
+            var context = new AudioContext;
+            const source = context.createMediaStreamSource(stream);
+
+            const analyserNode = context.createAnalyser();
+            analyserNode.fftSize = 1024;
+            const bufferLength = analyserNode.frequencyBinCount;
+            const dataArray = new Float32Array(bufferLength);
+            const processor = context.createScriptProcessor(1024, 1, 1);
+
+            source.connect(analyserNode);
+            // analyserNode.connect(context.destination);
+
+            processor.connect(context.destination);
+            processor.onaudioprocess = function (e) {
+                console.log("bb");
+            };
+        function draw() {
+            //Schedule next redraw
+            requestAnimationFrame(draw);
+            //Get spectrum data
+            analyserNode.getFloatFrequencyData(dataArray);
+
+            //Draw black background
+            canvasCtx.fillStyle = 'rgb(0, 0, 0)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            //Draw spectrum
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let posX = 0;
+            for (let i = 0; i < bufferLength-100; i++) {
+                const barHeight = (dataArray[i] + 140) * 10;
+                canvasCtx.fillStyle = 'rgb(' + Math.floor(barHeight) + ', 50, 50)';
+                canvasCtx.fillRect(posX, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                posX += barWidth + 1;
+            }
+        };
+
+        draw();
+            // ...
+
+    };
+    navigator.mediaDevices.getUserMedia({audio: true, video: false})
+        .then(handleSuccess);
+
+
+</script>
+<script>
+    // const audioCtx = new AudioContext();
+    //
+    // //Create audio source
+    // //Here, we use an audio file, but this could also be e.g. microphone input
+    // const audioEle = new Audio();
+    // audioEle.src = 'https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3';//insert file name here
+    // audioEle.autoplay = true;
+    // audioEle.preload = 'auto';
+    // const audioSourceNode = audioCtx.createMediaElementSource(audioEle);
+    //
+    // //Create analyser node
+    // const analyserNode = audioCtx.createAnalyser();
+    // analyserNode.fftSize = 256;
+    // const bufferLength = analyserNode.frequencyBinCount;
+    // const dataArray = new Float32Array(bufferLength);
+    //
+    // //Set up audio node network
+    // audioSourceNode.connect(analyserNode);
+    // analyserNode.connect(audioCtx.destination);
+
+    //Create 2D canvas
+
+
+
+
+</script>
+</body>
+</html>

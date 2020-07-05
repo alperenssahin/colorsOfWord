@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<!doctype html>
+<body>
+<h1 id="frequency" style="position: absolute; left: 50vw;top:25vh;z-index: 99"></h1>
+<script>
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = 0;
+    canvas.style.left = 0;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const canvasCtx = canvas.getContext('2d');
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const handleSuccess = function (stream) {
+        var AudioContext = window.AudioContext // Default
+            || window.webkitAudioContext; // Safari and old versions of Chrome
+        // Do whatever you want using the Web Audio API
+        var context = new AudioContext;
+        const source = context.createMediaStreamSource(stream);
+        var analyser = context.createAnalyser();
+        analyser.fftSize = 1024;
+        var bufferLength = analyser.fftSize;
+        var dataArray = new Float32Array(bufferLength);
+        source.connect(analyser);
+
+        let sample = 0;
+        function draw() {
+            sample++;
+            drawVisual = requestAnimationFrame(draw);
+            analyser.getFloatTimeDomainData(dataArray);
+            canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+            canvasCtx.fillRect(0, 0,  canvas.width,   canvas.height);
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+            canvasCtx.beginPath();
+            var sliceWidth =  canvas.width * 1.0 / bufferLength;
+            var x = 0;
+
+            let frequencyCounter = 0;
+            let currentStatePositive = true;
+            for(var i = 0; i < bufferLength; i++) {
+                var v = dataArray[i] * 200.0;
+                var y =  canvas.height/2 + v;
+
+                if(currentStatePositive){
+                    if(v<0) frequencyCounter++;
+                    currentStatePositive = false;
+                }else{
+                    if(v>0) currentStatePositive = true;
+                }
+
+                if(i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            if(sample%5 === 0) document.getElementById("frequency").textContent = frequencyCounter;
+            canvasCtx.lineTo(canvas.width, canvas.height/2);
+            canvasCtx.stroke();
+        };
+
+        draw();
+            // ...
+
+    };
+    navigator.mediaDevices.getUserMedia({audio: true, video: false})
+        .then(handleSuccess);
+
+
+</script>
+<script>
+    // const audioCtx = new AudioContext();
+    //
+    // //Create audio source
+    // //Here, we use an audio file, but this could also be e.g. microphone input
+    // const audioEle = new Audio();
+    // audioEle.src = 'https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3';//insert file name here
+    // audioEle.autoplay = true;
+    // audioEle.preload = 'auto';
+    // const audioSourceNode = audioCtx.createMediaElementSource(audioEle);
+    //
+    // //Create analyser node
+    // const analyserNode = audioCtx.createAnalyser();
+    // analyserNode.fftSize = 256;
+    // const bufferLength = analyserNode.frequencyBinCount;
+    // const dataArray = new Float32Array(bufferLength);
+    //
+    // //Set up audio node network
+    // audioSourceNode.connect(analyserNode);
+    // analyserNode.connect(audioCtx.destination);
+
+    //Create 2D canvas
+
+
+
+
+</script>
+</body>
+</html>

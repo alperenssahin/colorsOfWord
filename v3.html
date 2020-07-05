@@ -19,9 +19,7 @@
 <canvas id="myCanvas"></canvas>
 <script>
     window.designRatio = 0.5;
-    window.amplitude = 1;
     window.pidState = true;
-    window.pidState2 = true;
     function standardDeviation(values){
         var avg = average(values);
 
@@ -51,66 +49,50 @@
             || false;
 
         if (AudioContext) {
+            // Do whatever you want using the Web Audio API
             var context = new AudioContext;
             const source = context.createMediaStreamSource(stream);
-            var analyser = context.createAnalyser();
-            analyser.fftSize = 1024;
-            var bufferLength = analyser.fftSize;
-            var dataArray = new Float32Array(bufferLength);
-            source.connect(analyser);
             const processor = context.createScriptProcessor(1024, 1, 1);
+
+            const analyser = context.createAnalyser();
+
+            source.connect(processor);
             processor.connect(context.destination);
+            let sample = 0;
+            let averageArray = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
             processor.onaudioprocess = function (e) {
-                analyser.getFloatTimeDomainData(dataArray);
+                averageArray.shift();
+                // console.log(averageArray);
+                sample++;
+                let count = 0;
+                let sum = 0;
+                // Do something with the data, e.g. convert it to WAV
+                // console.log(e.inputBuffer.getChannelData(0));
+                // e.inputBuffer.getChannelData(0);
 
-
-                let frequencyCounter = 0;
-                let currentStatePositive = true;
-                let max = 0;
-                for(let i =0; i<bufferLength; i++){
-                    if(dataArray[i] > max) max = dataArray[i];
-                    if(currentStatePositive){
-                        if(dataArray[i]<0) frequencyCounter++;
-                        currentStatePositive = false;
-                    }else{
-                        if(dataArray[i]>0) currentStatePositive = true;
+                for (let s = 0; s < e.inputBuffer.getChannelData(0).length; s += 10) {
+                    count++;
+                    sum += e.inputBuffer.getChannelData(0)[s];
+                }
+                let average = sum / count * 10;
+                averageArray.push(average);
+                let stdev = standardDeviation(averageArray);
+                if(Math.abs(stdev-average) > 0.05){
+                    if(window.pidState){
+                        let  interval1 = setInterval(()=>{
+                            window.pidState = false;
+                            let dif = window.designRatio - average;
+                            window.designRatio += (-1)*dif/30;
+                            // console.log("process", window.designRatio,average)
+                            if(window.designRatio.toFixed(3) === average.toFixed(3)){
+                                window.pidState = true;
+                                clearInterval(interval1);
+                            }
+                        },1);
                     }
                 }
-                window.animateControl = 0;
-                if(window.pidState){
-                    let  interval1 = setInterval(()=>{
-                        window.pidState = false;
-                        let dif = window.designRatio - frequencyCounter;
-                        window.designRatio += (-1)*dif/30;
-                        // console.log("process", window.designRatio,average)
-                        window.animateControl++;
-                        if(window.designRatio.toFixed(2) === frequencyCounter.toFixed(2) || window.animateControl > 1000 ){
-                            window.pidState = true;
-                            window.animateControl = 0;
-                            clearInterval(interval1);
-                        }
-                    },1);
-                }
-                window.animateControl2 = 0;
-                let nmax = max*100;
-                if(window.pidState2){
-                    let  interval2 = setInterval(()=>{
-                        window.pidState2 = false;
-
-                        let dif = window.amplitude - nmax;
-                        window.amplitude += (-1)*dif/30;
-                        // console.log("process", window.designRatio,average)
-                        window.animateControl2++;
-                        if(window.amplitude.toFixed(2) === nmax.toFixed(2) || window.animateControl2 > 1000 ){
-                            window.pidState2 = true;
-                            window.animateControl2 = 0;
-                            clearInterval(interval2);
-                        }
-                    },10);
-                }
             };
-
-
+            // ...
         } else {
             // Web Audio API is not supported
             // Alert the user
@@ -193,16 +175,15 @@
             this.endAngle = end;
             this.start = this.radian(start);
             this.end = this.radian(end);
-            this.width = width/20;
+            this.width = width;
             this.color = color;
-            this.diff = time/100
+            this.diff = time+10
         }
 
         draw() {
             ctx.beginPath();
             ctx.arc(center.x, center.y, this.r, this.start, this.end);
-
-            ctx.lineWidth = (this.width + window.amplitude*3) ;
+            ctx.lineWidth = (this.width * window.designRatio*2) % 80 + 50;
             ctx.strokeStyle = this.color;
             ctx.stroke();
             this.startAngle = (this.startAngle + (this.diff * window.designRatio));
