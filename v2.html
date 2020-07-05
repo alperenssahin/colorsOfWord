@@ -18,7 +18,7 @@
 <input id="textinput" placeholder="Type a word ...">
 <canvas id="myCanvas"></canvas>
 <script>
-    window.designRatio = 1;
+    window.designRatio = 0.5;
     window.pidState = true;
     function standardDeviation(values){
         var avg = average(values);
@@ -44,64 +44,63 @@
         return avg;
     }
     const handleSuccess = function (stream) {
-        const context = new AudioContext();
-        const source = context.createMediaStreamSource(stream);
-        const processor = context.createScriptProcessor(1024, 1, 1);
+        var AudioContext = window.AudioContext // Default
+            || window.webkitAudioContext // Safari and old versions of Chrome
+            || false;
 
-        const analyser = context.createAnalyser();
+        if (AudioContext) {
+            // Do whatever you want using the Web Audio API
+            var context = new AudioContext;
+            const source = context.createMediaStreamSource(stream);
+            const processor = context.createScriptProcessor(1024, 1, 1);
 
-        source.connect(processor);
-        processor.connect(context.destination);
-        let sample = 0;
-        let averageArray = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-        processor.onaudioprocess = function (e) {
-            averageArray.shift();
-            // console.log(averageArray);
-            sample++;
-            let count = 0;
-            let sum = 0;
-            // Do something with the data, e.g. convert it to WAV
-            // console.log(e.inputBuffer.getChannelData(0));
-            // e.inputBuffer.getChannelData(0);
+            const analyser = context.createAnalyser();
 
-            for (let s = 0; s < e.inputBuffer.getChannelData(0).length; s += 10) {
-                count++;
-                sum += e.inputBuffer.getChannelData(0)[s];
-            }
-            let average = sum / count * 10;
-            averageArray.push(average);
-            let stdev = standardDeviation(averageArray);
-           if(Math.abs(stdev-average) > 0.05){
-               if(window.pidState){
-               let  interval1 = setInterval(()=>{
-                      window.pidState = false;
-                      let dif = window.designRatio - average;
-                      window.designRatio += (-1)*dif/30;
-                      // console.log("process", window.designRatio,average)
-                      if(window.designRatio.toFixed(3) === average.toFixed(3)){
-                          window.pidState = true;
-                          clearInterval(interval1);
-                      }
-               },1);
-           }
-           }
-            // if (sample % 10 === 0) {
-            //     let dif = window.designRatio - average;
-            //         if(dif < 0){
-            //             while (window.designRatio < average){
-            //             window.designRatio += 0.001;
-            //             }
-            //         }else{
-            //             while (window.designRatio > average){
-            //                 window.designRatio -= 0.001;}
-            //         }
-            // }
+            source.connect(processor);
+            processor.connect(context.destination);
+            let sample = 0;
+            let averageArray = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+            processor.onaudioprocess = function (e) {
+                averageArray.shift();
+                // console.log(averageArray);
+                sample++;
+                let count = 0;
+                let sum = 0;
+                // Do something with the data, e.g. convert it to WAV
+                // console.log(e.inputBuffer.getChannelData(0));
+                // e.inputBuffer.getChannelData(0);
 
-            // console.log(window.designRatio*1000);
+                for (let s = 0; s < e.inputBuffer.getChannelData(0).length; s += 10) {
+                    count++;
+                    sum += e.inputBuffer.getChannelData(0)[s];
+                }
+                let average = sum / count * 10;
+                averageArray.push(average);
+                let stdev = standardDeviation(averageArray);
+                if(Math.abs(stdev-average) > 0.05){
+                    if(window.pidState){
+                        let  interval1 = setInterval(()=>{
+                            window.pidState = false;
+                            let dif = window.designRatio - average;
+                            window.designRatio += (-1)*dif/30;
+                            // console.log("process", window.designRatio,average)
+                            if(window.designRatio.toFixed(3) === average.toFixed(3)){
+                                window.pidState = true;
+                                clearInterval(interval1);
+                            }
+                        },1);
+                    }
+                }
+            };
+            // ...
+        } else {
+            // Web Audio API is not supported
+            // Alert the user
+            while(window.designRatio <= 0) window.designRatio -= 0.01;
+            alert("Sorry, but the Web Audio API is not supported by your browser. Please, consider upgrading to the latest version or downloading Google Chrome or Mozilla Firefox");
+        }
 
-        };
     };
-
     navigator.mediaDevices.getUserMedia({audio: true, video: false})
         .then(handleSuccess);
 </script>
