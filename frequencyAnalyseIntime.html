@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<!doctype html>
+<body>
+<button id="record" class="button" style="position: absolute;    width: 5vw;
+    height: 5vw;
+    border-radius: 5vw;">Record</button>
+<div id="app" style="display: flex">
+    <canvas id="myCanvas"></canvas>
+    <div id="photo-stack" style=" position:absolute;right:0;top:0;overflow-y: auto;width:30vw;height:100vh;background-color: orange"></div>
+</div>
+<style>
+    .button {
+        position: absolute;
+        z-index: 99;
+        top: 5px;
+        left: 5px;
+    }
+</style>
+<script>
+
+    const canvas = document.getElementById('myCanvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = 0;
+    canvas.style.left = 0;
+    canvas.width = window.innerWidth*70/100;
+    canvas.height = window.innerHeight;
+    // document.body.appendChild(canvas);
+    const canvasCtx = canvas.getContext('2d');
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const handleSuccess = function (stream) {
+        let button = false;
+        let sampler = null;
+        let sample = [];
+        document.getElementById("record").addEventListener("click", s => {
+            button = !button;
+            if (button) {
+                document.getElementById("record").style.backgroundColor = "red"
+                document.getElementById("record").style.color = "white"
+            } else {
+                document.getElementById("record").style.backgroundColor = "grey"
+                document.getElementById("record").style.color = "black"
+                draw();
+                sample = [];
+            }
+        })
+
+        var AudioContext = window.AudioContext // Default
+            || window.webkitAudioContext; // Safari and old versions of Chrome
+        // Do whatever you want using the Web Audio API
+        var context = new AudioContext;
+        const source = context.createMediaStreamSource(stream);
+
+        const analyserNode = context.createAnalyser();
+        analyserNode.fftSize = 1024;
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const processor = context.createScriptProcessor(1024, 1, 1);
+        source.connect(analyserNode);
+        // analyserNode.connect(context.destination);
+        processor.connect(context.destination);
+        // processor.onaudioprocess = function (e) {
+        //
+        // };
+        let interval = [0,120];
+        let catched = false;
+        sampler = setInterval(s => {
+            if (button) {
+                // console.log(dataArray);
+                let sum = 0;
+                analyserNode.getByteFrequencyData(dataArray);
+                let tmp = new Uint8Array(dataArray);
+
+                for(let i = 0; i<bufferLength;i++){
+                    sum += tmp[i];
+                }
+                let average = sum / bufferLength;
+                // console.log(average);
+                if(average>24){
+                    catched = true;
+                    sample.push(tmp);
+                }else{
+                    if(catched){
+                        const img = document.createElement('img');
+                        img.src = canvas.toDataURL();
+                        img.style.width = "30vw";
+                        img.style.height = "16vw";
+                        document.getElementById("photo-stack").appendChild(img);
+                        catched=false;
+                        sample = [];
+                    }
+                }
+                draw();
+            }
+        }, 10);
+
+        function draw() {
+            //Schedule next redraw
+            // requestAnimationFrame(draw);
+            //Get spectrum data
+            let bufferlen = bufferLength * sample.length;
+            canvasCtx.fillStyle = 'rgb(0, 0, 0)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            let currentStage = 0;
+            let stage = sample.length;
+            let heightPerStage = canvas.height / stage;
+            let averageArray = new Array(interval[1]-interval[0]).fill(0);
+            const barWidth = (canvas.width / (interval[1]-interval[0]));
+            for (let d of sample) {
+                currentStage++;
+                //Draw black background
+                //Draw spectrum
+
+                let barHeight;
+                let posX = 0;
+                for (let i = 0; i >= interval[0] && i<= interval[1] ; i++) {
+                    averageArray[i] += d[i];
+                    canvasCtx.fillStyle = `hsl(${360-d[i]},50%,50%)`;
+                    canvasCtx.fillRect(posX, currentStage * heightPerStage, barWidth, heightPerStage);
+                    posX += barWidth + 1;
+                }
+            }
+            averageArray = averageArray.map(s=>s/sample.length);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0,averageArray[0]*canvas.height/(interval[1]-interval[0]));
+            let posX = 0;
+            for (let i = 0; i >= interval[0] && i<= interval[1] ; i++) {
+                canvasCtx.lineTo(posX,canvas.height - averageArray[i]*canvas.height/256);
+                posX += barWidth + 1;
+            }
+            canvasCtx.strokeStyle = "#fff"
+            canvasCtx.lineWidth = 2;
+            canvasCtx.stroke();
+        };
+
+        // draw();
+        // ...
+
+    };
+    navigator.mediaDevices.getUserMedia({audio: true, video: false})
+        .then(handleSuccess);
+
+
+</script>
+<script>
+    // const audioCtx = new AudioContext();
+    //
+    // //Create audio source
+    // //Here, we use an audio file, but this could also be e.g. microphone input
+    // const audioEle = new Audio();
+    // audioEle.src = 'https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3';//insert file name here
+    // audioEle.autoplay = true;
+    // audioEle.preload = 'auto';
+    // const audioSourceNode = audioCtx.createMediaElementSource(audioEle);
+    //
+    // //Create analyser node
+    // const analyserNode = audioCtx.createAnalyser();
+    // analyserNode.fftSize = 256;
+    // const bufferLength = analyserNode.frequencyBinCount;
+    // const dataArray = new Float32Array(bufferLength);
+    //
+    // //Set up audio node network
+    // audioSourceNode.connect(analyserNode);
+    // analyserNode.connect(audioCtx.destination);
+
+    //Create 2D canvas
+
+
+</script>
+</body>
+</html>
