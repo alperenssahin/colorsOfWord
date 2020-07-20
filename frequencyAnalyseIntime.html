@@ -32,11 +32,59 @@
     // document.body.appendChild(canvas);
     const canvasCtx = canvas.getContext('2d');
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    function slopeGen(arr,step) {
+        let state = true;
+        let slopeArray = [];
+        let currentStart = 0;
+        let currentEnd = currentStart+step;
+        while (state){
+            let slope = (arr[currentEnd]-arr[currentStart])/step;
+            slopeArray.push(slope);
+            currentStart = currentEnd;
+            if(currentEnd === arr.length-1) state =false;
+            if(currentEnd + step > arr.length-1){
+                currentEnd = arr.length-1
+            }else{
+                currentEnd = currentEnd+step;
+            }
+        }
+        return slopeArray;
+    }
+    function slopeCosAnalyse(oldS,newS){
+        let dif = [];
+        let range = 1.5707*2;
+        let vectorProd = 0;
+        let ossum = 0;
+        let nssum = 0;
+        for(let i=0; i<oldS.length-1;i++){
+            vectorProd += oldS[i]*newS[i];
+            ossum += oldS[i]*oldS[i];
+            nssum += newS[i]*newS[i];
+        }
+        ossum = Math.sqrt(ossum);
+        nssum = Math.sqrt(nssum);
 
+        return vectorProd/(ossum*nssum);
+    }
+    function slopeJaccardAnalyse(oldS,newS,distance) {
+        let close = 0;
+        let far = 0;
+        for(let i = 0; i<oldS.length;i++){
+            let dif = Math.abs(oldS[i]-newS[i])
+            if(dif > distance){
+                far++;
+            }else{
+                close++;
+            }
+        }
+        return close/oldS.length;
+    }
     const handleSuccess = function (stream) {
         let button = false;
         let sampler = null;
         let sample = [];
+        let soundAnalyses = [];
+        let currentSlope =[];
         document.getElementById("record").addEventListener("click", s => {
             button = !button;
             if (button) {
@@ -81,7 +129,7 @@
                 }
                 let average = sum / bufferLength;
                 // console.log(average);
-                if(average>24){
+                if(average>20){
                     catched = true;
                     sample.push(tmp);
                 }else{
@@ -90,9 +138,18 @@
                         img.src = canvas.toDataURL();
                         img.style.width = "30vw";
                         img.style.height = "16vw";
-                        document.getElementById("photo-stack").appendChild(img);
+                        if(soundAnalyses.length !== 0){
+                            let Similarity = slopeCosAnalyse(soundAnalyses[soundAnalyses.length-1],currentSlope);
+                            let JaccardSimilarity = slopeJaccardAnalyse(soundAnalyses[soundAnalyses.length-1],currentSlope,1);
+                            const s = document.createElement('strong');
+                            document.getElementById("photo-stack").prepend(s);
+                            s.innerHTML = "Similarity with previous record :<br/> Cos : "+Similarity + " Jaccard : " + JaccardSimilarity;
+                        }
+                        soundAnalyses.push(currentSlope);
+                        document.getElementById("photo-stack").prepend(img);
                         catched=false;
                         sample = [];
+
                     }
                 }
                 draw();
@@ -136,6 +193,29 @@
             canvasCtx.strokeStyle = "#fff"
             canvasCtx.lineWidth = 2;
             canvasCtx.stroke();
+            let step = 4;
+            currentSlope = slopeGen(averageArray,step);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0,averageArray[0]*canvas.height/(interval[1]-interval[0]));
+            posX = 0;
+            let scount = 0;
+            for (let i = 0; i >= interval[0] && i<= interval[1] ; i+=step) {
+                canvasCtx.lineTo(posX,canvas.height - averageArray[i]*canvas.height/256);
+                canvasCtx.fillStyle = "#ff0"
+                canvasCtx.font = "20px Arial";
+                try{
+                    canvasCtx.fillText(currentSlope[scount].toFixed(4),posX,canvas.height - averageArray[i]*canvas.height/256);
+                    scount++
+                }catch (e) {
+
+                }
+                posX += barWidth * step;
+            }
+            canvasCtx.strokeStyle = "#0f0"
+            canvasCtx.lineWidth = 3;
+            canvasCtx.stroke();
+
+
         };
 
         // draw();
